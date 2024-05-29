@@ -1,79 +1,80 @@
 name: tutorial
 description: A new Flutter project.
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+# 以下の行は、`flutter pub publish`を使って誤ってpub.devにパッケージを公開してしまうのを防ぎます。
+# プライベート・パッケージの場合は、この方法が望ましいです。
+publish_to: "none" # pub.devに公開したい場合は、この行を削除する。
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
+# 以下は、アプリケーションのバージョンとビルド番号の定義です。
+# バージョン番号とは、1.2.43のようにドットで区切られた3つの数字で記載し、
+# その後ろに「+」とオプションのビルド番号が続きます。
+# (例)1.2.43+1
+# flutterではバージョンとビルド番号の両方を上書きすることができます。
+# --build-name と --build-number をそれぞれ指定することで上書きできます。
+# Androidでは、build-name は versionName として使用され、build-number は versionCode として使用されます。
+# Androidのバージョニングについては、下記を参照して下さい。
+# https://developer.android.com/studio/publish/versioning
+# iOSでは、build-name は CFBundleShortVersionString として使用され、build-number は CFBundleVersion として使用されます。
+# iOSのバージョニングについては、下記を参照して下さい。
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
+# Windowsでは、build-name が製品バージョンとファイルバージョンの
+# メジャー、マイナー、パッチの各部分として使わます。ビルド番号はビルドの接尾辞として使われます。
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.1.2 <4.0.0'
+  sdk: ">=3.1.2 <4.0.0"
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
+# dependenciesは、あなたのパッケージが動作するために必要な他のパッケージを指定します。.
+# パッケージの依存関係を自動的に最新版にアップグレードするには
+# `flutter pub upgrade --major-versions` を実行してみて下さい。
+# あるいは、以下のバージョン番号を以下のように変更することで、
+# 依存関係をpub.devで利用可能な最新バージョンに手動で更新することもできます。
+# 新しいバージョンが利用可能な依存関係を確認するには,
+# `flutter pub outdated` も実行してみて下さい。
 dependencies:
   flutter:
     sdk: flutter
 
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  # 以下は、アプリケーションに Cupertino Icons フォントを追加するためのものです。
+  # iOSスタイルのアイコンはCupertinoIconsクラスと一緒に使ってください。
   cupertino_icons: ^1.0.2
+  meta: ^1.9.1
+  hooks_riverpod: ^2.4.10
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  # 以下の "flutter_lints "パッケージには、
+  # 良いコーディングプラクティスを奨励するための、推奨lintsのセットが含まれています。
+  # パッケージが提供するlintセットは、パッケージのルートにある`analysis_options.yaml`ファイルで有効になります。
+  # 特定のlintsルールの無効化と追加ルールの有効化については、このファイルを参照してください。
   flutter_lints: ^2.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+# このファイルの一般的なDart部分に関する情報については、
+# 次のページを参照して下さい: https://dart.dev/tools/pub/pubspec
 
-# The following section is specific to Flutter packages.
+# 以下のセクションはFlutterパッケージに特化したものです。
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  # 以下の行は、Material Iconsクラスのアイコンを使用できるように、
+  # Material Iconsフォントがアプリケーションに含まれていることを保証しています。
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
+  # アプリケーションにアセットを追加するには、下記ようにアセットセクションを追加します。
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware
+  # 画像アセットは、1つ以上の解像度固有の"variants"を参照できます。
+  # https://flutter.dev/assets-and-images/#resolution-aware を参照してください。
 
-  # For details regarding adding assets from package dependencies, see
+  # パッケージの依存関係からのアセット追加に関する詳細については、下記を参照して下さい。
   # https://flutter.dev/assets-and-images/#from-packages
 
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
+  # アプリケーションにカスタムフォントを追加するには、
+  # この "flutter "セクションにフォントセクションを追加します。
+  # このリスト内の各エントリには、フォントファミリー名を示す "family "キーと、
+  # フォントのアセットやその他の記述子を示すistを示す "fonts "キーが必要です。
+  # (例)
   # fonts:
   #   - family: Schyler
   #     fonts:
@@ -86,5 +87,5 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages
+  # パッケージ依存のフォントに関する詳細については、下記を参照して下さい。
+  # https://flutter.dev/custom-fonts/#from-packages

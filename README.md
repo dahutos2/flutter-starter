@@ -1,16 +1,14 @@
-# tutorial
+# 基本的なアップバーとフッターのあるアプリです。
+| ホーム画面                 | AIに聞く画面                   | 判定画面                     |
+| -------------------------- | ------------------------------ | ---------------------------- |
+| ![home](./images/home.png) | ![camera](./images/camera.png) | ![judge](./images/judge.png) |
 
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## パッケージ一覧
+### [meta](https://pub.dev/packages/meta)
+```bash
+flutter pub add meta
+```
+### [hooks_riverpod](https://pub.dev/packages/hooks_riverpod)
+```bash
+flutter pub add hooks_riverpod
+```
