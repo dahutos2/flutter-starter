@@ -3,11 +3,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../model/index.dart';
 
 final currentPageNotifierProvider =
-    NotifierProvider<CurrentPageNotifier, PageType>(
-  CurrentPageNotifier.new,
+    NotifierProvider<_CurrentPageNotifier, PageType>(
+  _CurrentPageNotifier.new,
 );
 
-class CurrentPageNotifier extends Notifier<PageType> {
+class _CurrentPageNotifier extends Notifier<PageType> {
   @override
   PageType build() {
     return PageType.home;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:tutorial/model/page_type.dart';
 
-import '../../../view_model/current_notifier.dart';
+import '../../../view_model/index.dart';
 
 const double headerHeight = kToolbarHeight * 0.9;
 

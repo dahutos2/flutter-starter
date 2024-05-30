@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'view/index.dart';
+import 'view_model/index.dart';
 
-void main() {
+void main() async {
   // 他のすべてのコードがフレームワークの初期化後に実行されるようにする
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -12,9 +13,15 @@ void main() {
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+
+  // 非同期初期化処理
+  final container = ProviderContainer();
+  await container.read(cameraNotifierProvider.notifier).initialize();
+
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      parent: container,
+      child: const MyApp(),
     ),
   );
 }

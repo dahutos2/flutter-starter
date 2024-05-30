@@ -39,6 +39,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   meta: ^1.9.1
   hooks_riverpod: ^2.4.10
+  camera: ^0.10.5+9
+  image: ^4.2.0
 
 dev_dependencies:
   flutter_test:
