@@ -40,7 +40,7 @@ class CameraButtonPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFFFFFFF)
+      ..color = isScanning ? const Color(0x88000000) : const Color(0xFFFFFFFF)
       ..style = PaintingStyle.fill;
 
     final center = Offset(size.width / 2, size.height / 2);
@@ -54,13 +54,6 @@ class CameraButtonPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
     canvas.drawCircle(center, radius, paint);
-
-    if (isScanning) {
-      paint
-        ..style = PaintingStyle.fill
-        ..color = Colors.black.withOpacity(0.5);
-      canvas.drawCircle(center, radius - 4, paint);
-    }
   }
 
   @override

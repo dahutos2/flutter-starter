@@ -41,6 +41,7 @@ dependencies:
   hooks_riverpod: ^2.4.10
   camera: ^0.10.5+9
   image: ^4.2.0
+  image_picker: ^1.0.8
 
 dev_dependencies:
   flutter_test:

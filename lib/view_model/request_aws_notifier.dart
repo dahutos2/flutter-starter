@@ -4,8 +4,14 @@ import 'dart:typed_data';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../model/index.dart';
-import 'result_image_notifier.dart';
+import 'result_notifier.dart';
 
+/// 現在のリクエストの状態（処理中かどうか）を示すブール値を保持する。
+///
+/// 推奨されるステート変数名: `isRequesting`
+///
+/// 利用可能なメソッド:
+/// - `sendImage`: 画像をAWSに送信し、結果を取得する非同期メソッド。
 final requestAwsNotifierProvider = NotifierProvider<_RequestAwsNotifier, bool>(
   _RequestAwsNotifier.new,
 );
@@ -16,34 +22,22 @@ class _RequestAwsNotifier extends Notifier<bool> {
     return false;
   }
 
-  Future<void> sendImage(Uint8List? image) async {
+  /// 画像をAWSに送信し、結果を取得する非同期メソッド。
+  ///
+  /// [image] - 送信する画像のバイトデータ。
+  Future<void> sendImage(Uint8List image) async {
     try {
       state = true;
-      await Future.delayed(const Duration(seconds: 2));
-      const url =
-          "https://d2dcan0armyq93.cloudfront.net/photo/odai/600/c293d1e2e91cf65bb56739f123d14388_600.jpg";
-      const result = "今日、ケンタッキーにしない？";
-      const resultImage = ResultImage(url: url, result: result);
-      ref.read(resultImageNotifierProvider.notifier).setResult(resultImage);
 
-      // resultImageNotifierの状態がnullになるまで待つ
-      await _waitForClear();
+      // ここでAWSから結果を取得する
+      // 仮で固定の文字を入れる
+      await Future.delayed(const Duration(seconds: 2));
+      const resultText = "今日、ケンタッキーにしない？";
+
+      final result = Result(byte: image, text: resultText);
+      ref.read(resultNotifierProvider.notifier).setResult(result);
     } finally {
       state = false;
     }
-  }
-
-  Future<void> _waitForClear() async {
-    final completer = Completer<void>();
-    final sub = ref.listen<ResultImage?>(
-      resultImageNotifierProvider,
-      (previous, next) {
-        if (next == null && !completer.isCompleted) {
-          completer.complete();
-        }
-      },
-    );
-    await completer.future;
-    sub.close();
   }
 }
