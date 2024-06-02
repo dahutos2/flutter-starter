@@ -14,12 +14,12 @@ class HeaderView extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final page = ref.watch(currentPageNotifierProvider);
+    final currentType = ref.watch(currentPageNotifierProvider);
     return AppBar(
       elevation: 0,
       title: Center(
         child: Text(
-          _getTitle(page),
+          _getTitle(currentType),
           style: const TextStyle(
             fontSize: 17.0,
             fontWeight: FontWeight.bold,

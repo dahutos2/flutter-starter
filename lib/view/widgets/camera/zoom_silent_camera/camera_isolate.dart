@@ -4,10 +4,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as imglib;
 
+/// 画面を固まらせないために、別スレッドでカメラの処理を行うクラス。
 class CameraIsolate {
   CameraIsolate._();
 
-  /// カメラで撮影した画像をUint8Listで返す
+  /// カメラで撮影した画像を指定のアスペクト比で切り取り、Byte配列に変換して返す
   static Future<Uint8List?> convertAndProcessCameraImage(
     CameraImage cameraImage,
     CameraDescription camera,

@@ -25,9 +25,9 @@ class _SwitchView extends ConsumerWidget {
   const _SwitchView();
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final type = ref.watch(currentPageNotifierProvider);
+    final currentType = ref.watch(currentPageNotifierProvider);
 
-    switch (type) {
+    switch (currentType) {
       case PageType.home:
         return const HomeView();
       case PageType.camera:

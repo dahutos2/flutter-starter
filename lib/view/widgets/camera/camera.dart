@@ -3,15 +3,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../view_model/index.dart';
 import '../common/index.dart';
-import 'photo_picker/index.dart';
-import 'result_image.dart';
+import 'dialog/index.dart';
+import 'take_camera/index.dart';
 
 class CameraView extends ConsumerWidget {
   const CameraView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final camera = ref.read(cameraNotifierProvider);
+    final camera = ref.watch(cameraNotifierProvider);
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -19,13 +19,21 @@ class CameraView extends ConsumerWidget {
             ? const ErrorContentView(text: 'カメラがありません。')
             : Stack(
                 children: [
-                  PhotoPickerView(
+                  // PhotoPickerView(
+                  //   requestImage: ref
+                  //       .read(resultNotifierProvider.notifier)
+                  //       .registerAndAwaitImageProcessing,
+                  // ),
+                  TakeCameraView(
                     camera: camera,
-                    requestImage:
-                        ref.read(requestAwsNotifierProvider.notifier).sendImage,
+                    requestImage: ref
+                        .read(resultNotifierProvider.notifier)
+                        .registerAndAwaitImageProcessing,
+                    switchCamera:
+                        ref.read(cameraNotifierProvider.notifier).switchCamera,
                     aspectRatio: constraints.maxWidth / constraints.maxHeight,
                   ),
-                  const ResultImageView(),
+                  const CameraDialogView(),
                 ],
               );
       },
