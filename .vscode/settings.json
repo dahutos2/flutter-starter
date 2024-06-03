@@ -3,9 +3,12 @@
         "autorenew",
         "bgra",
         "cupertino",
+        "endlocal",
         "imglib",
+        "ogiri",
         "Rgba",
         "riverpod",
-        "Schyler"
+        "Schyler",
+        "setlocal"
     ]
 }
