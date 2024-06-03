@@ -294,50 +294,52 @@ HIDDEN_DIM = 512
 VOCAB_SIZE = 5000  # 語彙サイズは必要に応じて調整
 MAX_SEQ_LENGTH = 20
 
-# 画像特徴抽出モデル（ResNet）
+# 画像特徴抽出モデル（ResNet）にランダム性を追加
 class EncoderCNN(nn.Module):
     def __init__(self, embed_size):
         super(EncoderCNN, self).__init__()
-        resnet = models.resnet50(pretrained=True)
-        modules = list(resnet.children())[:-1]  # 最後の全結合層を除く
+        resnet = models.resnet50(pretrained=True)  # ResNetモデルの読み込み
+        modules = list(resnet.children())[:-1]  # 最後の全結合層を除去
         self.resnet = nn.Sequential(*modules)
-        self.linear = nn.Linear(resnet.fc.in_features, embed_size)
-        self.bn = nn.BatchNorm1d(embed_size, momentum=0.01)
+        self.linear = nn.Linear(resnet.fc.in_features, embed_size)  # 埋め込み層
+        self.bn = nn.BatchNorm1d(embed_size, momentum=0.01)  # バッチ正規化層
+        self.dropout = nn.Dropout(p=0.5)  # Dropout層でランダム性を追加
 
     def forward(self, images):
-        with torch.no_grad():
-            features = self.resnet(images)
+        with torch.no_grad():  # 勾配計算をしない
+            features = self.resnet(images)  # ResNetで特徴抽出
         features = features.reshape(features.size(0), -1)
-        features = self.bn(self.linear(features))
+        features = self.bn(self.linear(features))  # 埋め込み層とバッチ正規化
+        features = self.dropout(features)  # Dropoutを適用
         return features
 
 # キャプション生成モデル（LSTM）
 class DecoderRNN(nn.Module):
     def __init__(self, embed_size, hidden_size, vocab_size, num_layers=1):
         super(DecoderRNN, self).__init__()
-        self.embed = nn.Embedding(vocab_size, embed_size)
-        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)
-        self.linear = nn.Linear(hidden_size, vocab_size)
-        self.max_seg_length = MAX_SEQ_LENGTH
+        self.embed = nn.Embedding(vocab_size, embed_size)  # 埋め込み層
+        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)  # LSTM層
+        self.linear = nn.Linear(hidden_size, vocab_size)  # 全結合層
+        self.max_seg_length = MAX_SEQ_LENGTH  # 最大シーケンス長
 
     def forward(self, features, captions):
-        embeddings = self.embed(captions)
-        embeddings = torch.cat((features.unsqueeze(1), embeddings), 1)
-        hiddens, _ = self.lstm(embeddings)
-        outputs = self.linear(hiddens)
+        embeddings = self.embed(captions)  # キャプションを埋め込みに変換
+        embeddings = torch.cat((features.unsqueeze(1), embeddings), 1)  # 特徴とキャプションを結合
+        hiddens, _ = self.lstm(embeddings)  # LSTMで処理
+        outputs = self.linear(hiddens)  # 全結合層で出力
         return outputs
 
     def sample(self, features, states=None):
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):
-            hiddens, states = self.lstm(inputs, states)  # (batch_size, 1, hidden_size)
-            outputs = self.linear(hiddens.squeeze(1))  # (batch_size, vocab_size)
-            _, predicted = outputs.max(1)  # (batch_size)
+            hiddens, states = self.lstm(inputs, states)  # LSTMで処理
+            outputs = self.linear(hiddens.squeeze(1))  # 全結合層で出力
+            _, predicted = outputs.max(1)  # 最も確率の高い単語を選択
             sampled_ids.append(predicted)
-            inputs = self.embed(predicted)  # (batch_size, embed_size)
-            inputs = inputs.unsqueeze(1)  # (batch_size, 1, embed_size)
-        sampled_ids = torch.stack(sampled_ids, 1)  # (batch_size, max_seq_length)
+            inputs = self.embed(predicted)  # 埋め込みに変換
+            inputs = inputs.unsqueeze(1)  # 次のLSTM入力の形に変換
+        sampled_ids = torch.stack(sampled_ids, 1)  # サンプルIDをスタック
         return sampled_ids
 
 # データセットクラスの定義
@@ -346,11 +348,11 @@ class OgiriDataset(Dataset):
         self.dynamodb_table_name = dynamodb_table_name
         self.s3_client = s3_client
         self.dynamodb_client = dynamodb_client
-        self.data = self._load_data_from_dynamodb()
+        self.data = self._load_data_from_dynamodb()  # DynamoDBからデータをロード
         self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            transforms.Resize((224, 224)),  # 画像サイズの変更
+            transforms.ToTensor(),  # テンソルに変換
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))  # 正規化
         ])
         logger.info(f"Loaded {len(self.data)} items from DynamoDB")
 
@@ -368,9 +370,9 @@ class OgiriDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         image_url = item['ImageUrl']['S']
-        response = requests.get(image_url)
+        response = requests.get(image_url)  # 画像をダウンロード
         image = Image.open(BytesIO(response.content)).convert('RGB')
-        image = self.transform(image)
+        image = self.transform(image)  # 画像を変換
         expected_result = item['ExpectedResult']['S']
         labels = item['Labels']['SS']
         return image, expected_result, labels
@@ -382,7 +384,7 @@ def train():
     dynamodb_client = boto3.client('dynamodb')
 
     dataset = OgiriDataset(dynamodb_table_name, s3_client, dynamodb_client)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)  # データローダーの設定
 
     # モデルの定義
     encoder = EncoderCNN(EMBEDDING_DIM)
