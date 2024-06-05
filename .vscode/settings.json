@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "argparse",
         "autorenew",
         "bgra",
         "boto",
@@ -12,6 +13,8 @@
         "endlocal",
         "findstr",
         "getitem",
+        "hashlib",
+        "hexdigest",
         "hiddens",
         "imglib",
         "lstm",
