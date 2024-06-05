@@ -1,6 +1,40 @@
-### 1. ローカルからCSVファイルをS3にアップロードするバッチスクリプト
-### 2. IAMポリシーの作成
-#### トレーニングジョブ開始するLambda用
+## UC01 画像と結果の文字列のペアをまとめて登録し、学習を実行する
+
+### 1. ローカルから CSV ファイルを S3 にアップロードするバッチスクリプト
+
+まず、ローカルから CSV ファイルを S3 にアップロードするバッチスクリプトを作成します。
+
+#### upload_to_s3.bat
+
+```batch
+
+@echo off
+
+setlocal
+
+REM S3バケット名とCSVファイルのパスを設定
+
+set AWS_BUCKET=ogiri-training-data-bucket
+
+set CSV_FILE=path\to\your\train_data.csv
+
+REM CSVファイルをS3にアップロード
+
+aws s3 cp %CSV_FILE% s3://%AWS_BUCKET%/
+
+endlocal
+
+```
+
+### 2. IAM ポリシーの作成
+
+#### 2.1. トレーニングジョブ開始する Lambda 用のポリシーの作成
+
+##### 手順:
+
+1. **AWS マネジメントコンソール**にログインし、**IAM**ダッシュボードに移動します。
+2. 左側のメニューから「**ポリシー**」を選択し、「**ポリシーを作成**」ボタンをクリックします。
+3. **JSON**タブを選択し、以下のポリシーを貼り付けます:
 
 <details><summary>詳細を開く</summary>
 
@@ -10,46 +44,40 @@
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": [
-                "s3:PutObject",
-                "s3:GetObject",
-                "s3:ListBucket"
-            ],
+            "Action": ["s3:PutObject", "s3:GetObject"],
             "Resource": [
-                "arn:aws:s3:::ogiri-training-data-bucket",
                 "arn:aws:s3:::ogiri-training-data-bucket/*"
             ]
         },
         {
             "Effect": "Allow",
-            "Action": "rekognition:DetectLabels",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
             "Action": [
-                "dynamodb:PutItem",
-                "dynamodb:GetItem",
-                "dynamodb:UpdateItem"
-            ],
-            "Resource": "arn:aws:dynamodb:us-east-1:123456789012:table/OgiriTrainingDataTable"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateTrainingJob",
-                "sagemaker:DescribeTrainingJob"
+                "rekognition:DetectLabels"
             ],
             "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
+                "dynamodb:PutItem"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:ap-northeast-1:765231401377:table/OgiriTrainingDataTable"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sagemaker:CreateTrainingJob"
             ],
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+            "Resource": [
+                "arn:aws:logs:ap-northeast-1:765231401377:log-group:/aws/lambda/*"
+            ]
         }
     ]
 }
@@ -57,7 +85,14 @@
 
 </details>
 
-#### トレーニングジョブ終了後のLambda用
+4. 「**次のステップ: タグ**」をクリックし、任意のタグを追加します（省略可能）。
+5. 「**次のステップ: 確認**」をクリックし、ポリシーに名前（例: `LambdaStartOgiriTrainingJobPolicy`）と説明を入力して「**ポリシーの作成**」をクリックします。
+
+#### 2.2. トレーニングジョブ終了後の Lambda 用のポリシーの作成
+
+##### 手順:
+
+1. [2.1](#21-トレーニングジョブ開始するlambda用のポリシーの作成)同様の手順で以下のポリシー（`LambdaEndOgiriTrainingJobRole`）を作成する
 
 <details><summary>詳細を開く</summary>
 
@@ -77,12 +112,10 @@
         },
         {
             "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
+            "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+            "Resource": [
+                "arn:aws:logs:ap-northeast-1:765231401377:log-group:/aws/lambda/*"
+            ]
         }
     ]
 }
@@ -90,7 +123,11 @@
 
 </details>
 
-#### トレーニングジョブ開始するSageMaker用
+#### 2.3. トレーニングジョブ開始する SageMaker 用のポリシーの作成
+
+##### 手順:
+
+1. [2.1](#21-トレーニングジョブ開始するlambda用のポリシーの作成)同様の手順で以下のポリシー（`SageMakerStartOgiriTrainingJobPolicy`）を作成する
 
 <details><summary>詳細を開く</summary>
 
@@ -101,13 +138,29 @@
         {
             "Effect": "Allow",
             "Action": [
+                "sagemaker:CreateTrainingJob",
+                "sagemaker:DescribeTrainingJob"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "s3:GetObject",
-                "s3:PutObject",
-                "s3:ListBucket"
+                "s3:PutObject"
             ],
             "Resource": [
-                "arn:aws:s3:::ogiri-training-data-bucket",
                 "arn:aws:s3:::ogiri-training-data-bucket/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:Scan",
+                "dynamodb:GetItem"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:ap-northeast-1:765231401377:table/OgiriTrainingDataTable"
             ]
         },
         {
@@ -117,7 +170,9 @@
                 "logs:CreateLogStream",
                 "logs:PutLogEvents"
             ],
-            "Resource": "*"
+            "Resource": [
+                "arn:aws:logs:ap-northeast-1:765231401377:log-group:/aws/sagemaker/*"
+            ]
         },
         {
             "Effect": "Allow",
@@ -132,7 +187,11 @@
 
 </details>
 
-#### トレーニングジョブ終了後のSageMaker
+#### 2.4. トレーニングジョブ終了後の SageMaker 用のポリシーの作成
+
+##### 手順:
+
+1. [2.1](#21-トレーニングジョブ開始するlambda用のポリシーの作成)同様の手順で以下のポリシー（`SageMakerEndOgiriTrainingJobPolicy`）を作成する
 
 <details><summary>詳細を開く</summary>
 
@@ -143,92 +202,28 @@
         {
             "Effect": "Allow",
             "Action": [
-                "sagemaker:DescribeTrainingJob",
-                "sagemaker:CreateModel",
-                "sagemaker:CreateEndpointConfig",
-                "sagemaker:CreateEndpoint"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
-
-</details>
-
-#### IAMユーザー用
-
-<details><summary>詳細を開く</summary>
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:ListBucket",
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject"
+                "s3:GetObject"
             ],
             "Resource": [
-                "arn:aws:s3:::ogiri-training-data-bucket",
-                "arn:aws:s3:::ogiri-training-data-bucket/*"
+                "arn:aws:s3:::ogiri-training-data-bucket/output/*"
             ]
         },
         {
             "Effect": "Allow",
-            "Action": "rekognition:DetectLabels",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
             "Action": [
-                "dynamodb:PutItem",
-                "dynamodb:GetItem",
-                "dynamodb:UpdateItem",
-                "dynamodb:Scan",
-                "dynamodb:Query"
-            ],
-            "Resource": "arn:aws:dynamodb:us-east-1:123456789012:table/OgiriTrainingDataTable"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateTrainingJob",
-                "sagemaker:DescribeTrainingJob",
                 "sagemaker:CreateModel",
                 "sagemaker:CreateEndpointConfig",
-                "sagemaker:CreateEndpoint",
-                "sagemaker:InvokeEndpoint"
+                "sagemaker:CreateEndpoint"
+                "sagemaker:DescribeTrainingJob",
             ],
             "Resource": "*"
         },
         {
             "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "lambda:InvokeFunction"
-            ],
-            "Resource": "arn:aws:lambda:us-east-1:123456789012:function:ProcessTrainingData"
+            "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+            "Resource": [
+                "arn:aws:logs:ap-northeast-1:765231401377:log-group:/aws/sagemaker/*"
+            ]
         }
     ]
 }
@@ -236,35 +231,141 @@
 
 </details>
 
-### 3. IAMロールの作成
-#### トレーニングジョブ開始するLambda用のロールとポリシー
+### 3. IAM ロールの作成
 
-##### ロール名：`LambdaStartOgiriTrainingJobRole`
-##### ポリシー名：`LambdaStartOgiriTrainingJobPolicy`
+#### 3.1. トレーニングジョブ開始する Lambda 用のロールの作成
 
-#### トレーニングジョブ終了後のLambda用のロールとポリシー
+##### 手順:
 
-##### ロール名：`LambdaEndOgiriTrainingJobRole`
-##### ポリシー名：`LambdaEndOgiriTrainingJobPolicy`
+1. IAM ダッシュボードの左側のメニューから「**ロール**」を選択し、「**ロールを作成**」ボタンをクリックします。
+2. 「**信頼されたエンティティのタイプを選択**」画面で「**AWS サービス**」を選択し、「**Lambda**」を選択します。「**次のステップ**」をクリックします。
+3. 先ほど作成したポリシー（`LambdaStartOgiriTrainingJobPolicy`）を検索し、選択して「**次のステップ**」をクリックします。
+4. ロールに名前（例: `LambdaStartOgiriTrainingJobRole`）を付けて「**ロールの作成**」をクリックします。
 
-#### トレーニングジョブ開始するSageMaker用のロールとポリシー
+#### 3.2. トレーニングジョブ終了後の Lambda 用のロールの作成
 
-##### ロール名：`SageMakerStartOgiriTrainingJobRole`
-##### ポリシー名：`SageMakerStartOgiriTrainingJobPolicy`
+##### 手順:
 
-#### トレーニングジョブ終了後のSageMaker用のロールとポリシー
+1. [3.1](#31-トレーニングジョブ開始するlambda用のロールの作成)と同様の手順で以下の名前とポリシーのロールを作成する
+   - ポリシー名: `LambdaEndOgiriTrainingJobPolicy`
+   - ロール名: `LambdaEndOgiriTrainingJobRole`
 
-##### ロール名：`SageMakerEndOgiriTrainingJobRole`
-##### ポリシー名：`SageMakerEndOgiriTrainingJobPolicy`
+#### 3.3. トレーニングジョブ開始する SageMaker 用のロールの作成
 
-### 4. IAMユーザの作成
+##### 手順:
 
-#### ポリシー名：`OgiriServiceUserPolicy`
+1. [3.1](#31-トレーニングジョブ開始するlambda用のロールの作成)と同様の手順で以下の名前とポリシーのロールを作成する
+   - ポリシー名: `SageMakerStartOgiriTrainingJobPolicy`
+   - ロール名: `SageMakerStartOgiriTrainingJobRole`
 
-### 5. S3バケットの設定
-### 6. DynamoDBテーブルの作成
-### 7. SageMakerの設定
+#### 3.4. トレーニングジョブ終了後の SageMaker 用のロールの作成
+
+##### 手順:
+
+1. [3.1](#31-トレーニングジョブ開始するlambda用のロールの作成)と同様の手順で以下の名前とポリシーのロールを作成する
+   - ポリシー名: `SageMakerEndOgiriTrainingJobPolicy`
+   - ロール名: `SageMakerEndOgiriTrainingJobRole`
+
+### 4. IAM ユーザーに権限を追加
+
+#### 4.1. IAM ユーザーに必要なポリシーを作成
+
+1. **AWS マネジメントコンソール**にログインし、**IAM**ダッシュボードに移動します。
+2. 左側のメニューから「**ポリシー**」を選択し、「**ポリシーを作成**」ボタンをクリックします。
+3. **JSON**タブを選択し、以下のポリシーを貼り付けます:
+
+<details><summary>詳細を開く</summary>
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::ogiri-training-data-bucket",
+        "arn:aws:s3:::ogiri-training-data-bucket/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "rekognition:DetectLabels",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:Scan",
+        "dynamodb:Query"
+      ],
+      "Resource": "arn:aws:dynamodb:ap-northeast-1:765231401377:table/OgiriTrainingDataTable"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sagemaker:CreateTrainingJob",
+        "sagemaker:DescribeTrainingJob",
+        "sagemaker:CreateModel",
+        "sagemaker:CreateEndpointConfig",
+        "sagemaker:CreateEndpoint",
+        "sagemaker:InvokeEndpoint"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:ap-northeast-1:765231401377:log-group:/aws/lambda/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["lambda:InvokeFunction"],
+      "Resource": "arn:aws:lambda:ap-northeast-1:765231401377:function:StartOgiriTrainingJob"
+    }
+  ]
+}
+```
+
+</details>
+
+4. 「**次のステップ: タグ**」をクリックし、任意のタグを追加します（省略可能）。
+5. 「**次のステップ: 確認**」をクリックし、ポリシーに名前（例: `UserOgiriTrainingJobPolicy`）と説明を入力して「**ポリシーの作成**」をクリックします。
+
+#### 4.2. IAM ユーザーに必要なポリシーを追加
+
+1. 左側のメニューから「**ユーザー**」を選択し、作成済みのユーザのリンクをクリックします。
+2. 「**許可**」タブの「**許可ポリシー**」画面で「**許可を追加**」をクリックし、「**ポリシーを直接アタッチする**」を選択します。
+3. 先ほど作成したポリシー（`UserOgiriTrainingJobPolicy`）を検索し、選択して「**次へ**」をクリックし、「**許可を追加**」をクリックします。
+
+### 5. S3 バケットの設定
+
+#### 手順:
+
+1. **S3**ダッシュボードに移動し、デフォルトの設定で`ogiri-training-data-bucket`を作成します。
+2. バケットの「**プロパティ**」タブを開き、下にスクロールして「**イベント通知**」セクションを見つけます。
+3. 「**イベント通知を追加**」をクリックし、名前を入力します（例: `OgiriCSVUploadEvent`）。
+4. 「**イベントタイプ**」で「**すべてのオブジェクト作成イベント**」を選択します。
+5. 「**プレフィックス**」と「**サフィックス**」を設定して、CSV ファイルに限定します（例: `サフィックス: .csv`）。
+6. 「**Lambda 関数**」セクションで、「**Lambda 関数の選択**」から先ほど作成した関数（`StartOgiriTrainingJob`）を選択します。
+7. 「**保存**」をクリックします。
+
+### 6. DynamoDB テーブルの作成
+
+#### 手順:
+
+1. **DynamoDB**ダッシュボードに移動し、「**テーブルを作成**」をクリックします。
+2. テーブル名を入力します（例: `OgiriTrainingDataTable`）。
+3. プライマリキー(**パーティションキー**)として「**ImageKey**」（タイプ：文字列）を設定します。
+4. 「**テーブルの作成**」をクリックします。
+
+### 7. SageMaker の設定
+
 #### 7.1. トレーニングスクリプトの準備
+
 `training_script.py`を作成する
 
 <details><summary>詳細をクリック</summary>
@@ -354,7 +455,7 @@ class OgiriDataset(Dataset):
             transforms.ToTensor(),  # テンソルに変換
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))  # 正規化
         ])
-        logger.info(f"Loaded {len(self.data)} items from DynamoDB")
+        logger.info(f"DynamoDBから{len(self.data)}個のデータをロードしました。")
 
     def _load_data_from_dynamodb(self):
         paginator = self.dynamodb_client.get_paginator('scan')
@@ -434,21 +535,22 @@ if __name__ == '__main__':
 
 </details>
 
-#### 7.2. トレーニングスクリプトをS3にアップロード
+#### 7.2. トレーニングスクリプトを S3 にアップロード
 
-1. AWSマネジメントコンソールで「S3」サービスに移動します。
+1. AWS マネジメントコンソールで「S3」サービスに移動します。
 2. アップロードしたいバケット（例: `ogiri-training-data-bucket`）を選択します。
 3. 「オブジェクトをアップロード」をクリックし、`training_script.py`をアップロードします。
 
-### 8. トレーニングジョブ開始するLambda関数の作成
+### 8. トレーニングジョブ開始する Lambda 関数の作成
 
-1. **Lambda関数の作成**：
-    - Lambdaダッシュボードに移動し、「関数の作成」をクリックします。
-    - 「一から作成」を選択し、関数名（例: `StartOgiriTrainingJob`）を入力し、ランタイムをPython 3.8に設定します。
-    - 実行ロールには「既存のロールを使用する」を選択し、`LambdaStartOgiriTrainingRole`を選択します。
-    - 「関数の作成」をクリックします。
+1. **Lambda 関数の作成**：
+ 
+   - Lambda ダッシュボードに移動し、「関数の作成」をクリックします。
+   - 「一から作成」を選択し、関数名（例: `StartOgiriTrainingJob`）を入力し、ランタイムを Python 3.8 に設定します。
+   - 実行ロールには「既存のロールを使用する」を選択し、`LambdaStartOgiriTrainingJobRole`を選択します。
+   - 「関数の作成」をクリックします。
 
-2. **Lambda関数にコードを追加**：
+2. **Lambda 関数にコードを追加**：
 
 <details><summary>詳細をクリック</summary>
 
@@ -474,9 +576,9 @@ def lambda_handler(event, context):
         # イベントからバケット名とオブジェクトキーを取得
         bucket = event.get('bucket')
         key = event.get('key')
-        
+
         if not bucket or not key:
-            raise ValueError("bucket and key must be specified in the event")
+            raise ValueError("バケットとキーはイベントで指定してください。")
 
         # S3からCSVファイルを取得
         csv_file = s3.get_object(Bucket=bucket, Key=key)
@@ -485,26 +587,28 @@ def lambda_handler(event, context):
 
         for row in csv_reader:
             image_url, expected_result = row
-            
+
             try:
                 # グローバルなURLから画像をダウンロード
                 image_data = requests.get(image_url).content
                 image_name = image_url.split('/')[-1]
                 image_key = f"images/{image_name}"  # images ディレクトリに配置
-                
+
                 # ダウンロードした画像をS3にアップロード
                 s3.put_object(Bucket=bucket, Key=image_key, Body=image_data)
-                
+
+                logger.info(f"S3に{image_key}を登録しました。")
+
                 # S3のURLを生成
                 s3_url = f"https://{bucket}.s3.amazonaws.com/{image_key}"
-                
+
                 # Rekognitionを使用して画像を分析
                 rekognition_response = rekognition.detect_labels(
                     Image={'S3Object': {'Bucket': bucket, 'Name': image_key}},
                     MaxLabels=10
                 )
                 labels = [label['Name'] for label in rekognition_response['Labels']]
-                
+
                 # DynamoDBに画像URLと期待結果を保存
                 table = dynamodb.Table('OgiriTrainingDataTable')
                 table.put_item(
@@ -515,13 +619,13 @@ def lambda_handler(event, context):
                         'ExpectedResult': expected_result
                     }
                 )
-                logger.info(f"Successfully processed {image_url}")
+                logger.info(f"{image_url}をDBに登録しました。")
 
             except requests.exceptions.RequestException as e:
-                logger.error(f"Failed to download image from {image_url}: {str(e)}")
+                logger.error(f"{image_url}からの画像のダウロードに失敗しました: {str(e)}")
             except ClientError as e:
-                logger.error(f"Failed to process image {image_url}: {str(e)}")
-        
+                logger.error(f"{image_url}の登録に失敗しました: {str(e)}")
+
         # SageMakerトレーニングジョブの作成
         training_job_name = 'ogiri-training-job'
         response = sagemaker.create_training_job(
@@ -532,7 +636,6 @@ def lambda_handler(event, context):
             },
             AlgorithmSpecification={
                 'TrainingImage': '763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-training:1.6.0-cpu-py36-ubuntu16.04',
-                'TrainingInputMode': 'File',
                 'MetricDefinitions': [
                     {'Name': 'validation:error', 'Regex': 'validation:error=(.*)'}
                 ],
@@ -541,7 +644,7 @@ def lambda_handler(event, context):
                 'ScriptMode': 'SageMaker',
                 'TrainingScript': 's3://ogiri-training-data-bucket/training_script.py'
             },
-            RoleArn='arn:aws:iam::123456789012:role/SageMakerStartOgiriTrainingJobRole',
+            RoleArn='arn:aws:iam::765231401377:role/SageMakerStartOgiriTrainingJobRole',
             InputDataConfig=[
                 {
                     'ChannelName': 'training',
@@ -566,83 +669,80 @@ def lambda_handler(event, context):
             },
             StoppingCondition={
                 'MaxRuntimeInSeconds': 86400
+            },
+            Environment={
+                'DYNAMODB_TABLE_NAME': 'OgiriTrainingDataTable'
             }
         )
-        
-        logger.info("Training job started successfully")
-        
+
+        logger.info("トレーニングジョブの開始に成功しました。")
+
         return {
             'statusCode': 200,
-            'body': json.dumps('Training job started successfully')
+            'body': json.dumps('Tトレーニングジョブの開始に成功しました。')
         }
     except NoCredentialsError:
-        logger.error("Credentials not available")
+        logger.error("権限がないです。")
         return {
             'statusCode': 403,
-            'body': 'Credentials not available'
+            'body': '権限がないです。'
         }
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"予期せぬ例外: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps(f"Error: {str(e)}")
+            'body': json.dumps(f"予期せぬ例外: {str(e)}")
         }
 ```
 
 </details>
 
 3. **テストイベントの設定**：
-    - 「テスト」ボタンをクリックし、テストイベントを作成します。以下のようなJSONを使用します：
-      - [トレーニングジョブ終了後のlambda関数の作成](#10-トレーニングジョブ終了後のlambda関数の作成)完了後にテストする
+   - 「テスト」ボタンをクリックし、テストイベントを作成します。以下のような JSON を使用します：
+     - [トレーニングジョブ終了後の lambda 関数の作成](#10-トレーニングジョブ終了後のlambda関数の作成)完了後にテストする
 
 ```json
 {
   "bucket": "ogiri-training-data-bucket",
-  "key": "data.csv"
+  "key": "train_data.csv"
 }
 ```
 
-### 9. CloudWatch Event Ruleを設定する
+### 9. CloudWatch Event Rule を設定する
 
-1. **CloudWatch Eventルールの作成**：
-    - AWSマネジメントコンソールで「CloudWatch」サービスに移動します。
-    - 左側のメニューから「ルール」を選択し、「ルールの作成」をクリックします。
+1. **CloudWatch Event ルールの作成**：
+
+   - AWS マネジメントコンソールで「CloudWatch」サービスに移動します。
+   - 左側のメニューから「ルール」を選択し、「ルールの作成」をクリックします。
 
 2. **ルールの詳細の設定**：
-    - イベントソースを「イベントパターン」に設定し、以下のイベントパターンを使用します：
+   - イベントソースを「イベントパターン」に設定し、以下のイベントパターンを使用します：
 
 ```json
 {
-  "source": [
-    "aws.sagemaker"
-  ],
-  "detail-type": [
-    "SageMaker Training Job State Change"
-  ],
+  "source": ["aws.sagemaker"],
+  "detail-type": ["SageMaker Training Job State Change"],
   "detail": {
-    "TrainingJobName": [
-      "ogiri-training-job"
-    ],
-    "TrainingJobStatus": [
-      "Completed"
-    ]
+    "TrainingJobName": ["ogiri-training-job"],
+    "TrainingJobStatus": ["Completed"]
   }
 }
 ```
 
 3. **ターゲットの設定**：
-    - ターゲットに新しいLambda関数を選択します。関数名を（例：`EndOgiriTrainingJob`）とします。
+   - ターゲットに新しい Lambda 関数を選択します。関数名を（例：`EndOgiriTrainingJob`）とします。
 
-### 10. トレーニングジョブ終了後のLambda関数の作成
+### 10. トレーニングジョブ終了後の Lambda 関数の作成
 
-1. **Lambda関数の作成**：
-    - Lambdaダッシュボードに移動し、「関数の作成」をクリックします。
-    - 「一から作成」を選択し、関数名（例: `EndOgiriTrainingJob`）を入力し、ランタイムをPython 3.8に設定します。
-    - 実行ロールには「既存のロールを使用する」を選択し、`LambdaEndOgiriTrainingRole`を選択します。
-    - 「関数の作成」をクリックします。
+1. **Lambda 関数の作成**：
+ 
+   - Lambda ダッシュボードに移動し、「関数の作成」をクリックします。
+   - 「一から作成」を選択し、関数名（例: `EndOgiriTrainingJob`）を入力し、ランタイムを Python 3.8 に設定します。
+   - 実行ロールには「既存のロールを使用する」を選択し、`LambdaEndOgiriTrainingJobRole`を選択します。
+   - 「関数の作成」をクリックします。
 
-2. **Lambda関数にコードを追加**：
-    - 作成したLambda関数に以下のコードを追加します。
+2. **Lambda 関数にコードを追加**：
+   - 作成した Lambda 関数に以下のコードを追加します。
 
 <details><summary>詳細をクリック</summary>
 
@@ -660,15 +760,15 @@ sagemaker = boto3.client('sagemaker')
 def lambda_handler(event, context):
     try:
         training_job_name = event['detail']['TrainingJobName']
-        
+
         # トレーニングジョブの完了を確認
         if event['detail']['TrainingJobStatus'] != 'Completed':
-            logger.error(f"Training job {training_job_name} did not complete successfully.")
+            logger.error(f"トレーニングジョブ{training_job_name}が正常に完了しませんでした。")
             return {
                 'statusCode': 400,
-                'body': json.dumps('Training job did not complete successfully')
+                'body': json.dumps('トレーニングが正常に完了しませんでした。')
             }
-        
+
         # モデルの作成
         model_name = 'ogiri-model'
         sagemaker.create_model(
@@ -677,11 +777,11 @@ def lambda_handler(event, context):
                 'Image': '763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-inference:1.6.0-cpu-py36-ubuntu16.04',
                 'ModelDataUrl': f"s3://ogiri-training-data-bucket/output/{training_job_name}/output/model.tar.gz"
             },
-            ExecutionRoleArn='arn:aws:iam::123456789012:role/SageMakerEndOgiriTrainingJobRole'
+            ExecutionRoleArn='arn:aws:iam::765231401377:role/SageMakerEndOgiriTrainingJobRole'
         )
-        
-        logger.info("Model created successfully")
-        
+
+        logger.info("モデルの作成に成功しました。")
+
         # エンドポイント構成の作成
         endpoint_config_name = 'ogiri-endpoint-config'
         sagemaker.create_endpoint_config(
@@ -695,27 +795,27 @@ def lambda_handler(event, context):
                 }
             ]
         )
-        
-        logger.info("Endpoint configuration created successfully")
-        
+
+        logger.info("エンドポイント構成の作成に成功しました。")
+
         # エンドポイントの作成
         endpoint_name = 'ogiri-endpoint'
         sagemaker.create_endpoint(
             EndpointName=endpoint_name,
             EndpointConfigName=endpoint_config_name
         )
-        
-        logger.info("Endpoint created successfully")
-        
+
+        logger.info("エンドポイントの作成に成功しました。")
+
         return {
             'statusCode': 200,
-            'body': json.dumps('Model and endpoint created successfully')
+            'body': json.dumps('モデルとエンドポイントの作成成功しました。')
         }
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"予期せぬ例外: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps(f"Error: {str(e)}")
+            'body': json.dumps(f"予期せぬ例外: {str(e)}")
         }
 ```
 

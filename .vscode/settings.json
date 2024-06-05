@@ -5,15 +5,25 @@
         "boto",
         "botocore",
         "certutil",
+        "ckpt",
+        "cuda",
         "cupertino",
         "delims",
         "endlocal",
         "findstr",
+        "getitem",
+        "hiddens",
         "imglib",
+        "lstm",
         "ogiri",
+        "optim",
+        "pretrained",
         "Rgba",
         "riverpod",
         "Schyler",
-        "setlocal"
+        "setlocal",
+        "splitlines",
+        "torchvision",
+        "unsqueeze"
     ]
 }
