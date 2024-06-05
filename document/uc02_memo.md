@@ -290,9 +290,9 @@ def lambda_handler(event, context):
 
 3. **リソースとメソッドの設定**
   - 左側の「**Resources**」をクリックし、「**Actions**」から「**Create Resource**」を選択します。
-  - **Resource Name**: `images`
+  - **Resource Name**: `result`
     - APIリソースの名前。リクエストURLに含まれる一部です。
-  - **Resource Path**: `/images`
+  - **Resource Path**: `/result`
     - APIリソースのパス。リクエストURLに使用されます。
   - 「**Create Resource**」をクリックします。
   - `/images`を選択した状態で、「**Actions**」から「**Create Method**」を選択し、`POST`を選択します。
@@ -395,19 +395,21 @@ def lambda_handler(event, context):
 ```bat
 @echo off
 set /p imagePath="Enter the path to the image file: "
+set /p fileName="Enter the file name to save as: "
 set /p apiKey="Enter your API Key: "
 
 :: Convert image to base64
 for /f "delims=" %%A in ('certutil -encode %imagePath% temp.b64 ^& findstr /v /c:- temp.b64') do set base64Image=%%A
 
 :: Define the API URL
-set apiUrl=https://api.example.com/images
+set apiUrl=https://{YOUR_API_ID}.execute-api.ap-northeast-1.amazonaws.com/prod/result
 
 :: Send the request
-curl -X POST %apiUrl% -H "x-api-key: %apiKey%" -H "Content-Type: application/json" -d "{\"image\": \"%base64Image%\", \"filename\": \"image.jpg\"}"
+curl -X POST %apiUrl% -H "x-api-key: %apiKey%" -H "Content-Type: application/json" -d "{\"image\": \"%base64Image%\", \"filename\": \"%fileName%\"}"
 
 :: Clean up
 del temp.b64
+pause
 ```
 
 </details>
@@ -422,6 +424,8 @@ del temp.b64
 2. **ユーザー入力の促進**
    - `set /p imagePath="Enter the path to the image file: "`
      - **役割**: ユーザーに画像ファイルのパスを入力させます。
+   - `set /p fileName="Enter the file name to save as: `
+     - **役割**: ユーザーにファイル名を入力させます。
    - `set /p apiKey="Enter your API Key: "`
      - **役割**: ユーザーにAPIキーを入力させます。
 
@@ -435,11 +439,11 @@ del temp.b64
          - **役割**: エンコードされた画像データを環境変数`base64Image`に設定します。
 
 4. **API URLの設定**
-   - `set apiUrl=https://api.example.com/images`
+   - `set apiUrl=https://api.example.com/result`
      - **役割**: APIのエンドポイントURLを設定します。
 
 5. **APIリクエストの送信**
-   - `curl -X POST %apiUrl% -H "x-api-key: %apiKey%" -H "Content-Type: application/json" -d "{\"image\": \"%base64Image%\", \"filename\": \"image.jpg\"}"`
+   - `curl -X POST %apiUrl% -H "x-api-key: %apiKey%" -H "Content-Type: application/json" -d "{\"image\": \"%base64Image%\", \"filename\": \"%fileName%\"}" `
      - **役割**:
        - `curl -X POST %apiUrl%`:
          - **役割**: APIのエンドポイントに対してHTTP POSTリクエストを送信します。
@@ -447,7 +451,7 @@ del temp.b64
          - **役割**: リクエストヘッダーにAPIキーを追加します。
        - `-H "Content-Type: application/json"`:
          - **役割**: リクエストのContent-TypeをJSONに設定します。
-       - `-d "{\"image\": \"%base64Image%\", \"filename\": \"image.jpg\"}"`:
+       - `-d "{\"image\": \"%base64Image%\", \"filename\": \"%fileName%\"}" `:
          - **役割**: リクエストボディに画像データ（Base64エンコード）とファイル名をJSON形式で含めます。
 
 6. **一時ファイルの削除**
