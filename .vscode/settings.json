@@ -27,6 +27,7 @@
         "setlocal",
         "splitlines",
         "torchvision",
+        "tzip",
         "unsqueeze"
     ]
 }
